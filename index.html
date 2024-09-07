@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Channel Stats Viewer</title>
+    <style>
+        :root {
+            --background-light: #f9f9f9;
+            --background-dark: #181818;
+            --text-light: #333;
+            --text-dark: #f9f9f9;
+            --highlight-light: #FF0000; /* YouTube Red */
+            --highlight-dark: #FF0000;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-light);
+            text-align: center;
+            padding: 20px;
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        body.dark-mode {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+
+        h1, h2 {
+            color: var(--highlight-light);
+            transition: color 0.5s;
+        }
+
+        body.dark-mode h1, body.dark-mode h2 {
+            color: var(--highlight-dark);
+        }
+
+        #channelName {
+            width: 60%;
+            padding: 10px;
+            margin: 20px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: var(--highlight-light);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #cc0000;
+        }
+
+        body.dark-mode button {
+            background-color: var(--highlight-dark);
+        }
+
+        #channelList {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            list-style: none;
+            padding: 0;
+        }
+
+        .channelItem {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            color: black; /* Always black text */
+            font-weight: bold; /* Bold text */
+        }
+
+        .channelItem:hover {
+            background-color: #f1f1f1;
+            transform: scale(1.02);
+        }
+
+        .channelItem img {
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .channelItem .channelTitle {
+            font-size: 18px;
+            font-weight: bold;
+            flex-grow: 1;
+            text-align: left;
+            color: black; /* Always black text */
+        }
+
+        #channelInfo {
+            margin-top: 30px;
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        #channelInfo img {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #loading {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #loading img {
+            width: 50px;
+        }
+
+        /* Counter animation */
+        .counter {
+            font-size: 2em;
+            color: var(--highlight-light);
+        }
+
+        body.dark-mode .counter {
+            color: var(--highlight-dark);
+        }
+
+        /* Popup error message */
+        #errorPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #FF0000;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        /* Recent searches */
+        #recentSearches {
+            margin-top: 30px;
+        }
+
+        #recentSearches ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #recentSearches li {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            color: black; /* Always black text */
+            font-weight: bold; /* Bold text */
+        }
+
+        #recentSearches li:hover {
+            background-color: #f1f1f1;
+            transform: scale(1.02);
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "🌞";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            font-size: 18px;
+            text-align: center;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            content: "🌜";
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>YouTube Channel Stats Viewer</h1>
+
+    <!-- Theme switch toggle -->
+    <div id="themeSwitch">
+        <label class="switch">
+            <input type="checkbox" id="themeToggle">
+            <span class="slider round"></span>
+        </label>
+    </div>
+
+    <!-- Input for YouTube channel username -->
+    <input type="text" id="channelName" placeholder="Enter YouTube Channel Name">
+    <button onclick="searchChannel()">Search Channel</button>
+
+    <!-- Loading indicator -->
+    <div id="loading">
+        <img src="https://i.imgur.com/llF5iyg.gif" alt="Loading...">
+    </div>
+
+    <!-- List for selecting the correct channel -->
+    <ul id="channelList"></ul>
+
+    <!-- Placeholder for displaying the selected channel and its stats -->
+    <div id="channelInfo">
+        <img id="avatar" src="" alt="Channel Avatar">
+        <h2 id="selectedChannel">Selected Channel: N/A</h2>
+        <p>Subscriber Count: <span id="subscriberCount" class="counter">0</span></p>
+        <p>Channel Views: <span id="channelViews" class="counter">0</span></p>
+        <p>Video Count: <span id="videoCount" class="counter">0</span></p>
+    </div>
+
+    <!-- Custom popup error message -->
+    <div id="errorPopup">No channels found. Please try again.</div>
+
+    <!-- Recent searches -->
+    <div id="recentSearches">
+        <h2>Recent Searches</h2>
+        <ul id="recentSearchesList"></ul>
+    </div>
+
+    <script>
+        let refreshInterval;
+        let recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
+        let lastSelectedChannel = JSON.parse(localStorage.getItem('lastSelectedChannel')) || null;
+
+        // Set theme based on localStorage or default to light theme
+        const themeToggle = document.getElementById('themeToggle');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+
+        if (currentTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeToggle.checked = true;
+        }
+
+        // Add event listener to toggle theme
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Load recent searches and restore state
+        window.onload = () => {
+            updateRecentSearchesList();
+            if (lastSelectedChannel) {
+                selectChannel(lastSelectedChannel, false);
+            }
+        };
+
+        // Trigger search on Enter key press
+        document.getElementById('channelName').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchChannel();
+            }
+        });
+
+        function searchChannel() {
+            const channelName = document.getElementById('channelName').value.trim();
+            if (channelName === "") return;
+
+            // Clear previous channel info and stats
+            clearChannelInfo();
+
+            const apiUrl = `https://api.socialcounts.org/youtube-live-subscriber-count/search/${channelName}`;
+
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none'; // Hide loading
+
+                    if (data && data.items && data.items.length > 0) {
+                        const channelList = document.getElementById('channelList');
+                        channelList.innerHTML = ''; // Clear previous options
+                        channelList.style.display = 'block'; // Show the list
+
+                        // Populate the list with channel options
+                        data.items.forEach(channel => {
+                            const listItem = document.createElement('li');
+                            listItem.className = 'channelItem';
+                            listItem.onclick = () => selectChannel(channel, true);
+
+                            const avatarImg = document.createElement('img');
+                            avatarImg.src = channel.avatar;
+
+                            const titleDiv = document.createElement('div');
+                            titleDiv.className = 'channelTitle';
+                            titleDiv.textContent = `${channel.title} - Subscribers: ${formatNumber(channel.subscriberCount)}`;
+
+                            listItem.appendChild(avatarImg);
+                            listItem.appendChild(titleDiv);
+                            channelList.appendChild(listItem);
+                        });
+
+                        addToRecentSearches(channelName);
+                    } else {
+                        showErrorPopup();
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    showErrorPopup();
+                    console.error('Error searching for channels:', error);
+                });
+        }
+
+        function selectChannel(channel, saveAsLast) {
+            document.getElementById('selectedChannel').textContent = `Selected Channel: ${channel.title}`;
+            document.getElementById('avatar').src = channel.avatar;
+            document.getElementById('channelInfo').style.display = 'block';
+            document.getElementById('channelList').style.display = 'none'; // Hide the list
+
+            // Save selected channel as last selected (if saveAsLast is true)
+            if (saveAsLast) {
+                lastSelectedChannel = channel;
+                localStorage.setItem('lastSelectedChannel', JSON.stringify(channel));
+            }
+
+            // Fetch and display stats for the selected channel
+            fetchChannelStats(channel.id);
+
+            // Clear any previous interval
+            clearInterval(refreshInterval);
+
+            // Set an interval to refresh the stats every 3 seconds
+            refreshInterval = setInterval(() => fetchChannelStats(channel.id), 3000);
+        }
+
+        function fetchChannelStats(channelId) {
+            const apiUrl = `https://api.socialcounts.org/youtube-live-subscriber-count/${channelId}`;
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        animateValue(document.getElementById('subscriberCount'), parseInt(document.getElementById('subscriberCount').textContent.replace(/,/g, '')), data.API_sub || 0, 1000);
+                        const viewsStat = data.table.find(stat => stat.name === "Channel Views");
+                        const videoStat = data.table.find(stat => stat.name === "Videos");
+
+                        animateValue(document.getElementById('channelViews'), parseInt(document.getElementById('channelViews').textContent.replace(/,/g, '')), viewsStat ? viewsStat.count : 0, 1000);
+                        animateValue(document.getElementById('videoCount'), parseInt(document.getElementById('videoCount').textContent.replace(/,/g, '')), videoStat ? videoStat.count : 0, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching channel stats:', error);
+                    document.getElementById('subscriberCount').textContent = 'Error';
+                    document.getElementById('channelViews').textContent = 'Error';
+                    document.getElementById('videoCount').textContent = 'Error';
+                });
+        }
+
+        function clearChannelInfo() {
+            document.getElementById('channelInfo').style.display = 'none';
+            document.getElementById('selectedChannel').textContent = "Selected Channel: N/A";
+            document.getElementById('avatar').src = '';
+            document.getElementById('subscriberCount').textContent = '0';
+            document.getElementById('channelViews').textContent = '0';
+            document.getElementById('videoCount').textContent = '0';
+        }
+
+        function showErrorPopup() {
+            const popup = document.getElementById('errorPopup');
+            popup.style.display = 'block';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000); // Hide popup after 3 seconds
+        }
+
+        function addToRecentSearches(channelName) {
+            if (!recentSearches.includes(channelName)) {
+                recentSearches.unshift(channelName);
+                if (recentSearches.length > 5) {
+                    recentSearches.pop(); // Limit to 5 items
+                }
+                localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+            }
+            updateRecentSearchesList();
+        }
+
+        function updateRecentSearchesList() {
+            const recentSearchesList = document.getElementById('recentSearchesList');
+            recentSearchesList.innerHTML = '';
+
+            recentSearches.forEach(channelName => {
+                const listItem = document.createElement('li');
+                listItem.className = 'recent-search-item'; // Make sure to keep the black text and bold
+                listItem.textContent = channelName;
+                listItem.onclick = () => {
+                    searchChannelByName(channelName);
+                };
+                recentSearchesList.appendChild(listItem);
+            });
+        }
+
+        function searchChannelByName(channelName) {
+            document.getElementById('channelName').value = channelName;
+            searchChannel();
+        }
+
+        // Function to animate the value change
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.textContent = formatNumber(Math.floor(progress * (end - start) + start));
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Helper function to format numbers with commas
+        function formatNumber(number) {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+    </script>
+</body>
+</html>
